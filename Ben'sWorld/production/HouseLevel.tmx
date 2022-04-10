@@ -4,7 +4,7 @@
   <export target="assets/HouseLevel.json" format="json"/>
  </editorsettings>
  <tileset firstgid="1" name="Bedroom" tilewidth="32" tileheight="32" tilecount="144" columns="12">
-  <image source="assets/Bedroom.png" width="384" height="384"/>
+  <image source="../assets/Bedroom.png" width="384" height="384"/>
   <tile id="0">
    <properties>
     <property name="estSolide" type="bool" value="true"/>
@@ -871,7 +871,7 @@
   </tile>
  </tileset>
  <tileset firstgid="145" name="Bathroom" tilewidth="32" tileheight="32" tilecount="144" columns="12">
-  <image source="assets/Bathroom.png" width="384" height="384"/>
+  <image source="../assets/Bathroom.png" width="384" height="384"/>
   <tile id="0">
    <properties>
     <property name="estSolide" type="bool" value="true"/>
@@ -1594,7 +1594,7 @@
   </tile>
  </tileset>
  <tileset firstgid="289" name="Salon" tilewidth="32" tileheight="32" tilecount="64" columns="8">
-  <image source="assets/Salon.png" width="256" height="256"/>
+  <image source="../assets/Salon.png" width="256" height="256"/>
   <tile id="0">
    <properties>
     <property name="estSolide" type="bool" value="true"/>
@@ -1917,7 +1917,7 @@
   </tile>
  </tileset>
  <tileset firstgid="353" name="ParentsRoom" tilewidth="32" tileheight="32" tilecount="64" columns="8">
-  <image source="assets/ParentsRoom.png" width="256" height="256"/>
+  <image source="../assets/ParentsRoom.png" width="256" height="256"/>
   <tile id="0">
    <properties>
     <property name="estSolide" type="bool" value="true"/>
@@ -2240,7 +2240,7 @@
   </tile>
  </tileset>
  <tileset firstgid="417" name="Garage" tilewidth="32" tileheight="32" tilecount="64" columns="8">
-  <image source="assets/Garage.png" width="256" height="256"/>
+  <image source="../assets/Garage.png" width="256" height="256"/>
   <tile id="0">
    <properties>
     <property name="estSolide" type="bool" value="true"/>
