@@ -1,0 +1,1104 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" /><title>Ben's World</title>
+    <script
+src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+    <style type="text/css"> body { margin: 0; }</style>
+</head>
+
+<body>
+    <script type="text/javascript">
+
+class mainscreen extends Phaser.Scene{
+    constructor(){
+        super("mainscreen");
+    }
+    preload(){
+        //ici le code de la fonction preload
+        this.load.image('menu','assets/Mainscreen.png');
+        this.load.spritesheet('button','assets/bouton_play.png',
+            { frameWidth: 461, frameHeight:129 });
+
+    }
+    create(){
+        //ici le code de la fonction create
+        const menu = this.add.image (641,400, 'menu');
+        var button = this.add.image(650,600, 'button').setInteractive();
+            button.on('pointerover',function(pointer) {
+                button.setFrame(1);        
+            })
+            button.on('pointerout',function(pointer) {
+                button.setFrame(0);        
+            })
+            button.on('pointerdown', function (pointer) {
+                this.scene.scene.start("house");
+            });
+        
+
+    }
+    update(){
+        //ici le code de la fonction update
+        pv = 3;
+        hasGreenKey = false;
+        hasBlueKey = false;
+        direction = null;
+        fromGreenDoor = false;
+        hasEatenApple1 = false;
+        
+
+    }
+
+}
+
+class house extends Phaser.Scene{
+
+    constructor(){
+        super("house")
+    }
+
+    preload(){
+        
+        this.load.tilemapTiledJSON('houseMap','assets/HouseLevel.json')
+        this.load.image('bedroom','assets/Bedroom.png');
+        this.load.image('bathroom','assets/Bathroom.png');
+        this.load.image('salon','assets/Salon.png');
+        this.load.image('parentsRoom','assets/ParentsRoom.png');
+        this.load.image('garage','assets/Garage.png');
+        this.load.image('collectibles','assets/Collectibles.png');
+        this.load.image('greenKey','assets/GreenKey.png');
+        this.load.spritesheet('barreVie', 'assets/barreVie.png',
+            { frameWidth: 176, frameHeight: 47});
+        this.load.spritesheet('inventory', 'assets/Inventory.png',
+            { frameWidth: 32, frameHeight: 32});
+        this.load.spritesheet('list', 'assets/List.png',
+            { frameWidth: 64, frameHeight: 32});
+        this.load.spritesheet('cles', 'assets/Keys.png',
+            { frameWidth: 80, frameHeight: 32});
+        this.load.spritesheet('greenDoor', 'assets/GreenDoor.png',
+            { frameWidth: 64, frameHeight: 32});
+        this.load.spritesheet('perso', 'assets/hero.png',
+            { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('persoArmor', 'assets/HeroArmor.png',
+            { frameWidth: 32, frameHeight: 32 });
+        
+
+    }
+
+    
+
+    create(){
+
+        //chargement de la carte
+        const houseMap = this.add.tilemap('houseMap');
+    
+        //chargement des jeux de tuiles
+        const tileset = houseMap.addTilesetImage('Bedroom','bedroom');
+        const tileset2 = houseMap.addTilesetImage('Bathroom','bathroom');
+        const tileset3 = houseMap.addTilesetImage('Salon','salon');
+        const tileset4 = houseMap.addTilesetImage('ParentsRoom','parentsRoom');
+        const tileset5 = houseMap.addTilesetImage('Garage','garage');
+        
+
+        //chargement du calque background
+        const background = houseMap.createLayer('Sol', [tileset,tileset2,tileset3,tileset4,tileset5] );
+
+        //chargement des murs
+        const murs = houseMap.createLayer('Murs', [tileset,tileset2,tileset3,tileset4,tileset5] );
+
+        //définition de la solidité des murs
+        murs.setCollisionByProperty({estSolide: true}); 
+        
+        //chargement des meubles
+        const meubles = houseMap.createLayer('Meubles', [tileset,tileset2,tileset3,tileset4,tileset5] );
+        
+        //définition de la solidité des meubles
+        meubles.setCollisionByProperty({estSolide: true});
+
+
+        //Porte Verte
+        greenDoor = this.physics.add.staticSprite(480,848, 'greenDoor').setSize(15,32);
+
+        //chargement des Collectibles
+        if (hasGreenKey == true) {
+            greenKey = null;   
+        }
+        else {
+            greenKey = this.physics.add.sprite(655,718, 'greenKey').setSize(10,10);
+        }
+
+        // création du joueur
+        if (fromGreenDoor == true) {
+            player = this.physics.add.sprite(513, 840, 'perso').setSize(18,10).setOffset(7,22);
+        }
+        else {
+            player = this.physics.add.sprite(592, 1060, 'perso').setSize(18,10).setOffset(7,22);
+        }
+        player.setBounce(0.1);
+        player.setCollideWorldBounds(true);
+        player.invincible = false;
+        this.physics.add.collider(player, murs);
+        this.physics.add.collider(player, meubles);
+        this.physics.add.collider(player, greenDoor,goGarden, null, this);
+        this.physics.add.overlap(player, greenKey, getGreenKey, null, this);
+
+
+        //Barre de Vie
+        barreVie = this.add.sprite(480, 260, 'barreVie').setScale(0.5).setScrollFactor(0);
+
+        //Inventaire
+        inventory = this.add.sprite(450, 460, 'inventory').setScale().setScrollFactor(0);
+
+        //List
+        list = this.add.sprite(830, 262, 'list').setScale().setScrollFactor(0);
+
+        //Keys
+        cles = this.add.sprite(510, 459, 'cles').setScale().setScrollFactor(0);
+
+        // redimentionnement du monde
+        this.physics.world.setBounds(0, 0, 3000, 3000);
+        //  ajout du champs de la caméra de taille identique à celle du monde
+        this.cameras.main.setBounds(0, 0, 3000, 3000);
+        // ancrage de la caméra sur le joueur
+        this.cameras.main.startFollow(player);
+        this.cameras.main.setZoom(3); 
+        
+ 
+        
+        this.anims.create({
+            key: 'left',
+            frames: this.anims.generateFrameNumbers('perso', {start:7,end:4}),
+            frameRate: 6,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'facedown',
+            frames: [ { key: 'perso', frame: 0 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'faceup',
+            frames: [ { key: 'perso', frame: 8 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'faceleft',
+            frames: [ { key: 'perso', frame: 4 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'faceright',
+            frames: [ { key: 'perso', frame: 12 } ],
+            frameRate: 20
+        });
+        
+        this.anims.create({
+            key: 'right',
+            frames: this.anims.generateFrameNumbers('perso', {start:15,end:12}),
+            frameRate: 6,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'up',
+            frames: this.anims.generateFrameNumbers('perso', {start:11,end:8}),
+            frameRate: 6,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'down',
+            frames: this.anims.generateFrameNumbers('perso', {start:3,end:0}),
+            frameRate: 6,
+            repeat: -1
+        });
+
+        //animations vie
+        this.anims.create({
+            key: 'fullPv',
+            frames: this.anims.generateFrameNumbers('barreVie', {start:0,end:0}),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: '2Pv',
+            frames: this.anims.generateFrameNumbers('barreVie', {start:1,end:1}),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: '1Pv',
+            frames: this.anims.generateFrameNumbers('barreVie', {start:2,end:2}),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: '0Pv',
+            frames: this.anims.generateFrameNumbers('barreVie', {start:3,end:3}),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        //animation UI cles
+
+        this.anims.create({
+            key: 'getGreenKey',
+            frames: [ {key: 'cles', frame: 1 } ],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: 'getBlueKey',
+            frames: [ {key: 'cles', frame: 2 } ],
+            frameRate: 20
+        });
+
+        //animation Ui Inventory
+
+        this.anims.create({
+            key: 'getBranch',
+            frames: [ {key: 'inventory', frame: 1 } ],
+            frameRate: 20
+        });
+
+
+        //animation Porte Verte
+        this.anims.create({
+            key: 'openGreenDoor',
+            frames: [ {key: 'greenDoor', frame: 1 } ],
+            frameRate: 20
+        });
+
+        
+        cursors = this.input.keyboard.createCursorKeys();
+        
+
+    }
+
+    update(){
+
+        //Update barre vie
+        if (pv == 0) {
+            barreVie.anims.play('0Pv',true);
+            player.anims.play('facedown',true);
+            player.setTint(0xff0000);
+            this.physics.pause();
+            this.time.addEvent({delay:500, 
+            callback: ()=>{this.scene.start("mainscreen")}
+            });
+        }
+        else if (pv == 1) {
+            barreVie.anims.play('1Pv',true);
+        }
+        else if (pv == 2) {
+            barreVie.anims.play('2Pv',true);
+        }
+        else {
+            barreVie.anims.play('fullPv',true);
+        }
+
+
+        //Verif UI cles
+        if (hasBlueKey == true) {
+            cles.anims.play('getBlueKey', true);
+        }
+        else if (hasGreenKey == true) {
+            cles.anims.play('getGreenKey', true);
+        }
+
+        //Verif UI Invetory
+        if (hasBranch == true) {
+            inventory.anims.play('getBranch',true);
+        }
+
+
+        this.input.gamepad.once('connected', function (pad) {
+        gamepad = pad;
+        isConnected = true;
+        });
+
+        if (gameOver){return;}
+
+        if (isConnected == false) {
+            
+            
+
+            if (cursors.up.isDown) {
+                player.setVelocityY(-100);
+                player.setVelocityX(0);
+                player.anims.play('up', true);
+                direction = "up";
+            }
+
+            else if (cursors.down.isDown) {
+                player.setVelocityY(100);
+                player.setVelocityX(0);
+                player.anims.play('down', true);
+                direction = "down";
+            }
+            
+            else if (cursors.left.isDown){ //si la touche gauche est appuyée
+                player.setVelocityX(-110); //alors vitesse négative en X
+                player.setVelocityY(0);
+                player.anims.play('left', true); //et animation => gauche
+                direction = "left";
+            }
+
+            
+            else if (cursors.right.isDown){ //sinon si la touche droite est appuyée
+                player.setVelocityX(110);//alors vitesse positive en X
+                player.setVelocityY(0);
+                player.anims.play('right', true); //et animation => droite
+                direction = "right";
+            }
+
+            else {// sinon
+                player.setVelocityY(0); //vitesse nulle
+                player.setVelocityX(0); //vitesse nulle
+
+                if (direction == "up") {
+                    player.anims.play('faceup',true);
+                }
+                else if (direction == "right") {
+                    player.anims.play('faceright', true);
+                }
+                
+                else if (direction == "left") {
+                    player.anims.play('faceleft',true);
+                }
+                else {
+                    player.anims.play('facedown',true);
+                }
+                
+
+            }
+
+
+
+        }
+        
+        if (isConnected) {
+            if (gamepad.leftStick.y < 0 ) {
+                player.setVelocityY(-100);
+                player.setVelocityX(0);
+                player.anims.play('up', true);
+                direction = "up";
+                
+            }
+
+            else if (gamepad.leftStick.y > 0 ) {
+                player.setVelocityY(100);
+                player.setVelocityX(0);
+                player.anims.play('down', true);
+                direction = "down";
+                
+            }
+
+            if (gamepad.leftStick.x < 0 ) {
+                player.setVelocityX(-110);
+                player.setVelocityY(0);
+                player.anims.play('left', true);
+                direction = "left";
+
+            }
+            else if (gamepad.leftStick.x > 0) {
+                player.setVelocityX(110);
+                player.setVelocityY(0);
+                player.anims.play('right', true);
+                direction = "right";
+            }
+            else {
+                player.setVelocityX(0); //vitesse nulle
+                player.setVelocityY(0); //vitesse nulle
+                if (direction == "up") {
+                    player.anims.play('faceup',true);
+                }
+                else if (direction == "right") {
+                    player.anims.play('faceright', true);
+                }
+
+                else if (direction == "left") {
+                    player.anims.play('faceleft',true);
+                }
+                else {
+                    player.anims.play('facedown',true);
+                }
+            }
+        }
+
+    
+
+        //console.log(player.x,player.y);
+        //console.log(pv);
+
+
+    }
+
+
+}
+
+
+function getGreenKey(player,greenKey) {
+    greenKey.disableBody(true, true);
+    hasGreenKey = true;    
+        
+}
+
+function goGarden(player, greenDoor) {
+    if (hasGreenKey == true) {
+    greenDoor.anims.play('openGreenDoor',true);
+    this.time.addEvent({delay:500, 
+        callback: ()=>{this.scene.start("garden")}
+        });
+    
+    }
+}
+
+
+class garden extends Phaser.Scene{
+    constructor(){
+        super("garden");
+    }
+    preload(){
+        //ici le code de la fonction preload
+        this.load.tilemapTiledJSON('gardenMap','assets/GardenLevel.json')
+        this.load.image('garden','assets/Garden.png');
+        this.load.spritesheet('outsideGreenDoor','assets/OutsideGreenDoor.png',
+            { frameWidth: 64, frameHeight: 32});
+        this.load.spritesheet('barreVie', 'assets/barreVie.png',
+            { frameWidth: 176, frameHeight: 47});
+        this.load.spritesheet('inventory', 'assets/Inventory.png',
+            { frameWidth: 32, frameHeight: 32});
+        this.load.spritesheet('list', 'assets/List.png',
+            { frameWidth: 64, frameHeight: 32});
+        this.load.spritesheet('cles', 'assets/Keys.png',
+            { frameWidth: 80, frameHeight: 32});
+        this.load.spritesheet('perso', 'assets/hero.png',
+            { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('persoArmor', 'assets/HeroArmor.png',
+            { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('flowermob', 'assets/flowermob.png',
+            { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('mosquito', 'assets/mosquito.png',
+            { frameWidth: 32, frameHeight: 32 });
+        this.load.spritesheet('dog', 'assets/dog.png',
+            { frameWidth: 32, frameHeight: 32 });
+        this.load.image('branch','assets/Branch.png');
+        this.load.image('blueKey','assets/BlueKey.png');
+        this.load.image('apple','assets/Apple.png');
+
+
+    }
+
+    create(){
+        //chargement de la carte
+        const gardenMap = this.add.tilemap('gardenMap');
+        
+
+        //chargement du jeu de tuiles
+        const tileset = gardenMap.addTilesetImage(
+            'Garden',
+            'garden'
+        );
+
+        //chargment du calque background
+        const background = gardenMap.createLayer(
+            'Sol',
+            tileset
+        );
+
+        //chargement des murs
+        const murs = gardenMap.createLayer(
+            'Murs',
+            tileset
+        );
+
+        //définition de la solidité des murs
+        murs.setCollisionByProperty({estSolide: true}); 
+
+        //chargement des decors
+        const decors = gardenMap.createLayer(
+            'Decors',
+            tileset
+        );
+
+        //définition de la solidité des decors
+        decors.setCollisionByProperty({estSolide: true});
+
+        //chargement des portes
+        
+        outsideGreenDoor = this.physics.add.staticSprite(866,1015,'outsideGreenDoor').setSize(32,32).setOffset(25,0);
+
+        //création Flowermob
+        flowermob1 = this.physics.add.staticSprite(560, 430, 'flowermob');
+
+        flowermob2 = this.physics.add.staticSprite(600, 430, 'flowermob');
+        
+        //création Mosquito
+        mosquito1 = this.physics.add.sprite(419,691, 'mosquito');
+        
+
+        //création Dog
+
+        dog = this.physics.add.staticSprite(498,1110, 'dog');
+
+        //création Branch
+        if (hasBranch==true || hasBlueKey == true) {
+            branch=null;
+        }
+        else {
+        branch = this.physics.add.staticSprite(399,978, 'branch');
+        }
+
+        //création BlueKey
+        if (hasBlueKey==true) {
+            blueKey=null;
+        }
+        else {
+        blueKey = this.physics.add.staticSprite(501,1173, 'blueKey').setSize(10,10);
+        blueKey.visible = false;
+        }
+
+        //création Apples
+        if (hasEatenApple1 == true) {
+            apple1=null;
+        }
+        else {
+            apple1 = this.physics.add.staticSprite(688,563, 'apple').setSize(20,20);
+        }
+
+        // création du joueur
+        player = this.physics.add.sprite(830, 1020, 'perso').setSize(18,10).setOffset(7,22);
+        player.setBounce(0.1);
+        player.setCollideWorldBounds(true);
+        player.invincible = false;
+        this.physics.add.collider(player, murs);
+        this.physics.add.collider(player, outsideGreenDoor,goSalon,null,this);
+        this.physics.add.collider(player, decors);
+        this.physics.add.collider(player, dog,giveBranch,null,this);
+        this.physics.add.collider(player,flowermob1,hitEnnemi,null,this);
+        this.physics.add.collider(player,flowermob2,hitEnnemi,null,this);
+        this.physics.add.overlap(player,mosquito1,hitEnnemi,null,this);
+        this.physics.add.overlap(player,branch,getBranch,null,this);
+        this.physics.add.overlap(player,apple1,eatApple,null,this);
+        
+
+        
+
+
+        //Barre de Vie
+        barreVie = this.add.sprite(480, 260, 'barreVie').setScale(0.5).setScrollFactor(0);
+
+        //Inventaire
+        inventory = this.add.sprite(450, 460, 'inventory').setScale().setScrollFactor(0);
+
+        //List
+        list = this.add.sprite(830, 262, 'list').setScale().setScrollFactor(0);
+
+        //Keys
+        cles = this.add.sprite(510, 459, 'cles').setScale().setScrollFactor(0);
+
+        // redimentionnement du monde
+        this.physics.world.setBounds(0, 0, 2000, 2000);
+        //  ajout du champs de la caméra de taille identique à celle du monde
+        this.cameras.main.setBounds(0, 0, 2000, 2000);
+        // ancrage de la caméra sur le joueur
+        this.cameras.main.startFollow(player);
+        this.cameras.main.setZoom(3); 
+ 
+        
+        this.anims.create({
+            key: 'left',
+            frames: this.anims.generateFrameNumbers('perso', {start:7,end:4}),
+            frameRate: 6,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'facedown',
+            frames: [ { key: 'perso', frame: 0 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'faceup',
+            frames: [ { key: 'perso', frame: 8 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'faceleft',
+            frames: [ { key: 'perso', frame: 4 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'faceright',
+            frames: [ { key: 'perso', frame: 12 } ],
+            frameRate: 20
+        });
+        
+        this.anims.create({
+            key: 'right',
+            frames: this.anims.generateFrameNumbers('perso', {start:15,end:12}),
+            frameRate: 6,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'up',
+            frames: this.anims.generateFrameNumbers('perso', {start:11,end:8}),
+            frameRate: 6,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'down',
+            frames: this.anims.generateFrameNumbers('perso', {start:3,end:0}),
+            frameRate: 6,
+            repeat: -1
+        });
+
+        //animations vie
+        this.anims.create({
+            key: 'fullPv',
+            frames: [ { key: 'barreVie', frame: 0 } ],
+            frameRate: 20
+            
+        });
+        this.anims.create({
+            key: '2Pv',
+            frames: [ { key: 'barreVie', frame: 1 } ],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: '1Pv',
+            frames: [ { key: 'barreVie', frame: 2 } ],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: '0Pv',
+            frames: [ { key: 'barreVie', frame: 3 } ],
+            frameRate: 20
+        });
+
+        //Animation Flowermob
+        this.anims.create({
+            key: 'flowermobIdle',
+            frames: this.anims.generateFrameNumbers('flowermob', {start:0,end:3}),
+            frameRate: 4,
+            repeat: -1
+        });
+
+        //Animation Mosquito
+        this.anims.create({
+            key: 'mosquitoRight',
+            frames: this.anims.generateFrameNumbers('mosquito', {start:12,end:15}),
+            frameRate: 4,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'mosquitoLeft',
+            frames: this.anims.generateFrameNumbers('mosquito', {start:7,end:4}),
+            frameRate: 4,
+            repeat: -1
+        });
+
+        //Animation Dog
+        this.anims.create({
+            key: 'dogIdle',
+            frames: [ { key: 'dog', frame: 0 } ],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: 'happyDog',
+            frames: this.anims.generateFrameNumbers('dog', {start:0,end:3}),
+            frameRate: 4,
+            repeat: 5
+        });
+
+        //animation UI cles
+
+        this.anims.create({
+            key: 'getGreenKey',
+            frames: [ {key: 'cles', frame: 1 } ],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: 'getBlueKey',
+            frames: [ {key: 'cles', frame: 2 } ],
+            frameRate: 20
+        });
+
+        //animation Ui Inventory
+        this.anims.create({
+            key: 'emptyInventory',
+            frames: [ {key: 'inventory', frame: 0 } ],
+            frameRate: 20
+        });
+        this.anims.create({
+            key: 'getBranch',
+            frames: [ {key: 'inventory', frame: 1 } ],
+            frameRate: 20
+        });
+
+        //animation Porte Verte
+        this.anims.create({
+            key: 'openOutsideGreenDoor',
+            frames: [ {key: 'outsideGreenDoor', frame: 1 } ],
+            frameRate: 20
+        });
+
+        
+        cursors = this.input.keyboard.createCursorKeys();
+        
+
+    }
+
+    update(){
+
+        //Update barre vie
+        if (pv == 0) {
+            barreVie.anims.play('0Pv',true);
+            player.anims.play('facedown',true);
+            player.setTint(0xff0000);
+            this.physics.pause();
+            this.time.addEvent({delay:500, 
+            callback: ()=>{this.scene.start("mainscreen")}
+            });
+        }
+        else if (pv == 1) {
+            barreVie.anims.play('1Pv',true);
+        }
+        else if (pv == 2) {
+            barreVie.anims.play('2Pv',true);
+        }
+        else {
+            barreVie.anims.play('fullPv',true);
+        }
+
+        //Verif UI cles
+        if (hasBlueKey == true) {
+            cles.anims.play('getBlueKey', true);
+        }
+        else if (hasGreenKey == true) {
+            cles.anims.play('getGreenKey', true);
+        }
+
+
+        //Verif UI Inventory
+        if (hasBranch == true) {
+            inventory.anims.play('getBranch',true);
+        }
+        else {
+            inventory.anims.play('emptyInventory',true);
+        }
+
+        //Update animations mobs
+
+        flowermob1.anims.play('flowermobIdle', true);
+
+        flowermob2.anims.play('flowermobIdle', true);
+
+        
+        if (mosquito1.x >= 600) {
+            mosquito1.anims.play('mosquitoLeft',true);
+            mosquito1.setVelocityX(-50)
+               
+        }
+        else if (mosquito1.x <= 419) {
+            mosquito1.anims.play('mosquitoRight',true);
+            mosquito1.setVelocityX(50)
+        }
+        
+
+
+
+
+        this.input.gamepad.once('connected', function (pad) {
+        gamepad = pad;
+        isConnected = true;
+        });
+
+        if (gameOver){return;}
+
+        if (isConnected == false) {
+            
+            
+
+            if (cursors.up.isDown) {
+                player.setVelocityY(-100);
+                player.setVelocityX(0);
+                player.anims.play('up', true);
+                direction = "up";
+            }
+
+            else if (cursors.down.isDown) {
+                player.setVelocityY(100);
+                player.setVelocityX(0);
+                player.anims.play('down', true);
+                direction = "down";
+            }
+            
+            else if (cursors.left.isDown){ //si la touche gauche est appuyée
+                player.setVelocityX(-110); //alors vitesse négative en X
+                player.setVelocityY(0);
+                player.anims.play('left', true); //et animation => gauche
+                direction = "left";
+            }
+
+            
+            else if (cursors.right.isDown){ //sinon si la touche droite est appuyée
+                player.setVelocityX(110);//alors vitesse positive en X
+                player.setVelocityY(0);
+                player.anims.play('right', true); //et animation => droite
+                direction = "right";
+            }
+
+            else {// sinon
+                player.setVelocityY(0); //vitesse nulle
+                player.setVelocityX(0); //vitesse nulle
+
+                if (direction == "up") {
+                    player.anims.play('faceup',true);
+                }
+                else if (direction == "right") {
+                    player.anims.play('faceright', true);
+                }
+                
+                else if (direction == "left") {
+                    player.anims.play('faceleft',true);
+                }
+                else {
+                    player.anims.play('facedown',true);
+                }
+                
+
+            }
+
+
+
+        }
+        
+        if (isConnected) {
+            if (gamepad.leftStick.y < 0 ) {
+                player.setVelocityY(-100);
+                player.setVelocityX(0);
+                player.anims.play('up', true);
+                direction = "up";
+                
+            }
+
+            else if (gamepad.leftStick.y > 0 ) {
+                player.setVelocityY(100);
+                player.setVelocityX(0);
+                player.anims.play('down', true);
+                direction = "down";
+                
+            }
+
+            if (gamepad.leftStick.x < 0 ) {
+                player.setVelocityX(-110);
+                player.setVelocityY(0);
+                player.anims.play('left', true);
+                direction = "left";
+            }
+            else if (gamepad.leftStick.x > 0) {
+                player.setVelocityX(110);
+                player.setVelocityY(0);
+                player.anims.play('right', true);
+                direction = "right";
+            }
+            else {
+                player.setVelocityX(0); //vitesse nulle
+                player.setVelocityY(0); //vitesse nulle
+                if (direction == "up") {
+                    player.anims.play('faceup',true);
+                }
+                else if (direction == "right") {
+                    player.anims.play('faceright', true);
+                }
+
+                else if (direction == "left") {
+                    player.anims.play('faceleft',true);
+                }
+                else {
+                    player.anims.play('facedown',true);
+                }
+            }
+        }
+
+
+        //console.log(player.x,player.y);
+        //console.log(hasGreenKey);
+        //console.log(pv);
+        //console.log(fromGreenDoor);
+
+    }
+
+}
+//Portes
+function goSalon (player,outsideGreenDoor) {
+    if (hasGreenKey == true) {
+        outsideGreenDoor.anims.play('openOutsideGreenDoor',true);
+        fromGreenDoor = true;
+        this.time.addEvent({delay:500, 
+            callback: ()=>{this.scene.start("house", {hasGreenKey:true})}
+        });
+        
+    }
+}
+
+//GetBranch
+function getBranch (player,branch) {
+    branch.disableBody(true, true);
+    hasBranch = true;
+}
+
+//GiveBranch
+function giveBranch (player,dog) {
+    if (hasBranch == true) {
+    hasBranch = false;
+    blueKey.visible = true;
+    dog.anims.play('happyDog',true);
+    this.physics.add.overlap(player,blueKey,getBlueKey,null,this);
+    }
+
+}
+
+//Get BlueKey
+function getBlueKey (player,blueKey) {
+    blueKey.disableBody(true, true);
+    hasBlueKey = true;
+}
+
+//Ennemis
+function hitEnnemi (player,flowermob1) {
+    if (!player.invincible) {
+        pv = pv - 1;
+        player.setTint(0xff0000);
+        player.invincible = true;
+        this.time.addEvent({delay:500, 
+        callback: ()=>{player.setTint(),
+            this.time.addEvent({delay:500, 
+            callback: ()=>{player.setTint(0xff0000),
+                this.time.addEvent({delay:500, 
+                callback: ()=>{player.setTint(),player.invincible = false;}
+                
+                });}
+            });}
+        });
+    }
+    
+
+}
+function hitEnnemi (player,flowermob2) {
+    if (!player.invincible) {
+        pv = pv - 1;
+        player.setTint(0xff0000);
+        player.invincible = true;
+        this.time.addEvent({delay:500, 
+        callback: ()=>{player.setTint(),
+            this.time.addEvent({delay:500, 
+            callback: ()=>{player.setTint(0xff0000),
+                this.time.addEvent({delay:500, 
+                callback: ()=>{player.setTint(),player.invincible = false;}
+                
+                });}
+            });}
+        });
+    }
+    
+
+}
+function hitEnnemi (player,mosquito1) {
+    if (!player.invincible) {
+        pv = pv - 1;
+        player.setTint(0xff0000);
+        player.invincible = true;
+        this.time.addEvent({delay:500, 
+        callback: ()=>{player.setTint(),
+            this.time.addEvent({delay:500, 
+            callback: ()=>{player.setTint(0xff0000),
+                this.time.addEvent({delay:500, 
+                callback: ()=>{player.setTint(),player.invincible = false;}
+                
+                });}
+            });}
+        });
+    }
+    
+
+}
+function eatApple (player,apple1) {
+    if (pv < 3) {
+        pv += 1;
+        apple1.disableBody(true,true);
+        hasEatenApple1 = true;
+    }
+}
+
+
+var pv = 3;
+var player;
+var flowermob1;
+var flowermob2;
+var mosquito1;
+
+var apple1;
+var hasEatenApple1 = false;
+
+var dog;
+var branch;
+
+
+
+var cles;
+var greenDoor;
+var greenKey;
+var blueKey;
+var blueDoor;
+var outsideGreenDoor;
+var fromGreenDoor = false;
+
+
+var hasGreenKey = false;
+var hasBranch = false;
+var hasBlueKey = false;
+
+
+var inventory;
+var list;
+var barreVie;
+
+
+var cursors;
+var direction = null;
+var gamepad;
+var isConnected = false;
+var gameOver = false;
+    
+
+
+var config = {
+        type: Phaser.AUTO,
+        width: 1280, height: 720,
+        pixelArt: true,
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: { y: 0 },
+                debug: false
+            }},
+        scene: [mainscreen,house,garden],
+        input:{gamepad:true},
+    };
+new Phaser.Game(config);
+
+    </script>
+</body>
+</html>
+    
